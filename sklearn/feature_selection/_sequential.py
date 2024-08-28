@@ -305,14 +305,22 @@ class SequentialFeatureSelector(SelectorMixin, MetaEstimatorMixin, BaseEstimator
             if self.direction == "backward":
                 candidate_mask = ~candidate_mask
             X_new = X[:, candidate_mask]
-            scores[feature_idx] = cross_val_score(
-                estimator,
-                X_new,
-                y,
-                cv=self.cv,
-                scoring=self.scoring,
-                n_jobs=self.n_jobs,
-            ).mean()
+            if isinstance(self.cv, list):
+                scores[feature_idx] = np.mean(
+                    [
+                        estimator.fit(X_new[train], y[train]).score(X_new[test], y[test])
+                        for train, test in self.cv
+                    ]
+                )
+            else:
+                scores[feature_idx] = cross_val_score(
+                    estimator,
+                    X_new,
+                    y,
+                    cv=self.cv,
+                    scoring=self.scoring,
+                    n_jobs=self.n_jobs,
+                ).mean()
         new_feature_idx = max(scores, key=lambda feature_idx: scores[feature_idx])
         return new_feature_idx, scores[new_feature_idx]
 
