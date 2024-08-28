@@ -9,7 +9,7 @@ from sklearn.feature_selection import SequentialFeatureSelector
 from sklearn.datasets import make_regression, make_blobs
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import HistGradientBoostingRegressor
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_val_score, LeaveOneGroupOut
 from sklearn.cluster import KMeans
 
 
@@ -314,3 +314,15 @@ def test_backward_neg_tol():
 
     assert 0 < sfs.get_support().sum() < X.shape[1]
     assert new_score < initial_score
+
+
+def test_sequential_feature_selector_with_iterable_splits():
+    X, y = make_regression(n_samples=100, n_features=10, random_state=0)
+    groups = np.zeros_like(y, dtype=int)
+    groups[y.size // 2:] = 1
+    cv = LeaveOneGroupOut()
+    splits = cv.split(X, y, groups=groups)
+    clf = LinearRegression()
+    sfs = SequentialFeatureSelector(clf, n_features_to_select=5, cv=splits)
+    sfs.fit(X, y)
+    assert sfs.transform(X).shape[1] == 5
